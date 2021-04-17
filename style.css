@@ -1,0 +1,9 @@
+body{
+    background-image: url(img/5c57745b654d7f20dde1fe0bff542ae723079ddf.jpg);
+    background-size: cover;
+}
+#wrapper{
+    width: 900px;
+    margin: 0 auto;
+}
+
