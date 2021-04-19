@@ -6,6 +6,7 @@ function include(url) {
 
 include("player.js");
 include("enemy.js");
+include("bullet.js");
 
 var canvas = document.getElementById('game');
 var context = canvas.getContext('2d');
@@ -19,21 +20,34 @@ var enemys = [];
 var ecount = 0;
 var ekills = 0;
 
+var bullets = [];
+
 function makeEnemy()
 {
     ex = 900;
     ey = Math.random()*525;
-    edx = -2;
+    edx = -6
     edy = 8;
     var enemy = new Enemy(ex, ey, edx, edy);
     enemys.push(enemy);
 }
 
+function makeBullet()
+{
+    var bx = player.x + 75;
+    var by = player.y + 75/2 - 5/2;
+    var bdx = 15;
+    
+    var bullet = new Bullet(bx, by, bdx);
+
+    bullets.push(bullet);
+}
 
 var pl = {x:100, y:300, dx:10, dy:10}; //player param
 var player = new Player(pl.x, pl.y, pl.dx, pl.dy);
 
 var timer = 0;
+var btimer = 0;
 
 
 var fonimg = new Image();
@@ -63,11 +77,14 @@ var leftKeyPress = false;
 var rightKeyPress = false;
 var upKeyPress = false;
 var downKeyPress = false;
+var spaceKeyPress = false;
+//var spaceKeyPress = false;
 
 const LEFT_KEY = 37;
 const RIGHT_KEY = 39; 
 const UP_KEY = 38;
 const DOWN_KEY = 40;
+const SPACE_KEY = 32;
 
 function keyPressed(evt)
 {
@@ -86,6 +103,10 @@ function keyPressed(evt)
     if(evt.keyCode == DOWN_KEY)
     {
         downKeyPress = true;
+    }
+    if(evt.keyCode == SPACE_KEY)
+    {
+        spaceKeyPress = true;
     }
 }
 
@@ -106,6 +127,11 @@ function keyRealeased(evt)
     if(evt.keyCode == DOWN_KEY)
     {
         downKeyPress = false;
+    }
+    if(evt.keyCode == SPACE_KEY)
+    {
+        makeBullet();
+        spaceKeyPress = false;
     }
 }
 
@@ -128,6 +154,49 @@ function pmove()
         player.y += player.dy;
     }
 }
+
+function emove()
+{
+    timer++;
+    if (timer%34 == 0 && ecount < 20)
+    {
+        makeEnemy();
+        ecount++;
+    }
+    //phis
+    for(i in enemys)
+    {
+        enemys[i].move();
+        //border
+        if (enemys[i].x <= 0)
+        { 
+            enemys[i].x = 900; 
+            enemys[i].y = Math.random()*525;
+        }
+        if (enemys[i].y >= 525 || enemys[i].y < 0) enemys[i].dy = -enemys[i].dy;
+        //collusion
+        if(enemys[i].y + 75 > player.y && enemys[i].y < player.y + 75 && enemys[i].x + 75 > player.x && enemys[i].x < player.x + 75)
+        {
+            console.log('hit');
+        }
+    }
+
+    fx += 6;//bg move speed
+}
+
+function bmove()
+{
+    for(i in bullets) 
+    {
+        bullets[i].move();
+        if(bullets[i].outOfRange() || bullets[i].hasCollided())
+        {
+            delete bullets[i];
+        }
+    }
+    bullets = bullets.filter(item => item !== undefined);
+}
+
 fonimg.onload = function() 
 {
     context.drawImage(fonimg, fx, 0, 600, 399, 0, 0, 900, 600);
@@ -145,28 +214,9 @@ function game()
 
 function update()
 {
-    
     pmove();
-    timer++;
-    if (timer%34 == 0 && ecount < 10)
-    {
-        makeEnemy();
-        ecount++;
-    }
-    //phis
-    for(i in enemys)
-    {
-        enemys[i].move();
-        //граница
-        if (enemys[i].x <= 0)
-        { 
-            enemys[i].x = 900; 
-            enemys[i].y = Math.random()*525;
-        }
-        if (enemys[i].y >= 525 || enemys[i].y < 0) enemys[i].dy = -enemys[i].dy;
-    }
-    fx += 6;
-
+    emove();
+    bmove();
 }
 
 function render()
@@ -177,6 +227,7 @@ function render()
         fx = 1;
     }
     for(i in enemys) enemys[i].draw();
+    for(i in bullets) bullets[i].draw();
     player.draw();
 }
 
