@@ -12,9 +12,18 @@ var canvas = document.getElementById('game');
 var context = canvas.getContext('2d');
 document.addEventListener('keydown', keyPressed);
 document.addEventListener('keyup', keyRealeased);
+canvas.addEventListener("mousemove", checkPos);
+var fadeId = 0;
 
-var pcon = 0;
-
+var pcon = 0; //0-main menu 1-game 2-death-screen
+var pcont = 0; //1-keyboard 2-mouse only
+var Img = [];
+var z = 0;
+for (var i = 0; i < 15; i++)
+{
+    Img[i] = new Image();
+    Img[i].src = "pimg/"+i+".gif";
+}
 
 var enemys = [];
 var ecount = 0;
@@ -26,8 +35,8 @@ function makeEnemy()
 {
     ex = 900;
     ey = Math.random()*525;
-    edx = -6
-    edy = 8;
+    edx = Math.random(-30)*-10;
+    edy = Math.random(10)*30;
     var enemy = new Enemy(ex, ey, edx, edy);
     enemys.push(enemy);
 }
@@ -42,12 +51,15 @@ function makeBullet()
 
     bullets.push(bullet);
 }
+var kd = 0;
 
 var pl = {x:100, y:300, dx:10, dy:10}; //player param
 var player = new Player(pl.x, pl.y, pl.dx, pl.dy);
+var plph = 3;
 
 var timer = 0;
 var btimer = 0;
+var godtimer = 0;
 
 
 var fonimg = new Image();
@@ -64,21 +76,25 @@ var mouse = new Image();
 var course = new Image();
 
 controlimg.src = "img/control.png";
-keybord.src = "img/keyboard.png";
+keybord.src = "img/keyboard1.png";
 mouse.src = "img/mouse.png";
 course.src = "img/wand.png";
 
+
+
 var buttonX = [250, 250, 250];
 var buttonY = [200, 320, 390];
-var buttonW = [120, 120, 120];
-var buttonH = [50, 50, 50];
+var buttonW = [549, 577, 403];
+var buttonH = [90, 63, 63];
+
+
 
 var leftKeyPress = false;
 var rightKeyPress = false;
 var upKeyPress = false;
 var downKeyPress = false;
 var spaceKeyPress = false;
-//var spaceKeyPress = false;
+var spaceKeyPress = false;
 
 const LEFT_KEY = 37;
 const RIGHT_KEY = 39; 
@@ -88,77 +104,116 @@ const SPACE_KEY = 32;
 
 function keyPressed(evt)
 {
-    if(evt.keyCode == LEFT_KEY)
+    if(evt.keyCode == LEFT_KEY && pcont == 1)
     {
         leftKeyPress = true;
     }
-    if(evt.keyCode == RIGHT_KEY)
+    if(evt.keyCode == RIGHT_KEY && pcont == 1)
     {
         rightKeyPress = true;
     }
-    if(evt.keyCode == UP_KEY)
+    if(evt.keyCode == UP_KEY && pcont == 1)
     {
         upKeyPress = true;
     }
-    if(evt.keyCode == DOWN_KEY)
+    if(evt.keyCode == DOWN_KEY && pcont == 1)
     {
         downKeyPress = true;
     }
-    if(evt.keyCode == SPACE_KEY)
+    if(evt.keyCode == SPACE_KEY && pcont == 1)
     {
-        spaceKeyPress = true;
+        if(kd <= 0)
+        {
+            makeBullet();
+            kd = 20;
+        }
     }
+    
+}
+
+function shoot()
+{
+        if(kd <= 0)
+        {
+            makeBullet();
+            kd = 20;
+        }
 }
 
 function keyRealeased(evt)
 {
-    if(evt.keyCode == LEFT_KEY)
+    if(evt.keyCode == LEFT_KEY && pcont == 1)
     {
         leftKeyPress = false;
     }
-    if(evt.keyCode == RIGHT_KEY)
+    if(evt.keyCode == RIGHT_KEY && pcont == 1)
     {
         rightKeyPress = false;
     }
-    if(evt.keyCode == UP_KEY)
+    if(evt.keyCode == UP_KEY && pcont == 1)
     {
         upKeyPress = false;
     }
-    if(evt.keyCode == DOWN_KEY)
+    if(evt.keyCode == DOWN_KEY && pcont == 1)
     {
         downKeyPress = false;
     }
-    if(evt.keyCode == SPACE_KEY)
+    if(evt.keyCode == SPACE_KEY && pcont == 1)
     {
-        makeBullet();
         spaceKeyPress = false;
     }
 }
 
+canvas.addEventListener('click', function(event) { 
+    if (mouseX > buttonX[1] && mouseX < buttonX[1] + buttonW[1] && mouseY > buttonY[1] &&  mouseY < buttonY[1] + buttonH[1] )
+    {
+        pcon = 1;
+        pcont = 1;
+    } 
+    else if (mouseX > buttonX[2] && mouseX < buttonX[2] + buttonW[2] && mouseY > buttonY[2] &&  mouseY < buttonY[2] + buttonH[2] )
+    {
+        pcon = 1;
+        pcont = 2;
+        document.getElementById('game').style.cursor = "none";
+    }
+  }); 
+
 function pmove()
 {
-    if(leftKeyPress && player.x - player.dx >= 0)
+    if(pcont == 1)
     {
-        player.x -= player.dx;
+        if(leftKeyPress && player.x - player.dx >= 0)
+        {
+            player.x -= player.dx;
+        }
+        if(rightKeyPress && player.x + player.dx <= 825)
+        {
+            player.x += player.dx;
+        }
+        if(upKeyPress && player.y - player.dy >= 0)
+        {
+            player.y -= player.dy;
+        }
+        if(downKeyPress && player.y + player.dy <= 525)
+        {
+            player.y += player.dy;
+        }
     }
-    if(rightKeyPress && player.x + player.dx <= 825)
+    if(pcont == 2)
     {
-        player.x += player.dx;
-    }
-    if(upKeyPress && player.y - player.dy >= 0)
-    {
-        player.y -= player.dy;
-    }
-    if(downKeyPress && player.y + player.dy <= 525)
-    {
-        player.y += player.dy;
+        player.x = mouseX - 75/2;
+        player.y = mouseY - 75/2;
     }
 }
 
 function emove()
 {
+    if(godtimer > 0)
+    {
+        godtimer--;
+    }
     timer++;
-    if (timer%34 == 0 && ecount < 20)
+    if (timer%20 == 0 && ecount < 25 && ekills <= 50 && godtimer == 0)
     {
         makeEnemy();
         ecount++;
@@ -177,6 +232,19 @@ function emove()
         //collusion
         if(enemys[i].y + 75 > player.y && enemys[i].y < player.y + 75 && enemys[i].x + 75 > player.x && enemys[i].x < player.x + 75)
         {
+            godtimer = 180;
+            plph--;
+            enemys.forEach(function(enemy, i)
+            {
+                delete enemys[i];
+                ecount--;
+            });
+            enemys = enemys.filter(item => item !== undefined);
+            if(pcont == 1)
+            {
+                player.x = 100;
+                player.y = 300;
+            }
             console.log('hit');
         }
     }
@@ -186,6 +254,10 @@ function emove()
 
 function bmove()
 {
+    if(kd > 0)
+    {
+        kd--;
+    }
     for(i in bullets) 
     {
         bullets[i].move();
@@ -203,7 +275,13 @@ fonimg.onload = function()
     game();
 }
 
-
+function checkPos(mouseEvent)
+{
+    mouseX = mouseEvent.pageX - this.offsetLeft;
+    mouseY = mouseEvent.pageY - this.offsetTop;
+    //console.log(mouseX);
+    //console.log(mouseY);
+}
 
 function game()
 {
@@ -214,9 +292,21 @@ function game()
 
 function update()
 {
-    pmove();
-    emove();
-    bmove();
+    
+    if(pcon == 0)
+    {
+        
+    }
+    if(pcon == 1)
+    {
+        if(pcont == 2)
+        {
+            shoot();
+        }
+        pmove();
+        emove();
+        bmove();
+    }
 }
 
 function render()
@@ -226,9 +316,26 @@ function render()
     {
         fx = 1;
     }
-    for(i in enemys) enemys[i].draw();
-    for(i in bullets) bullets[i].draw();
-    player.draw();
+    
+    if(pcon == 0)
+    {
+        context.drawImage(controlimg, buttonX[0], buttonY[0]);
+        context.drawImage(keybord, buttonX[1], buttonY[1]);
+        context.drawImage(mouse, buttonX[2], buttonY[2]);
+    }
+    if(pcon == 1)
+    {
+        for(i in enemys) enemys[i].draw();
+        for(i in bullets) bullets[i].draw();
+        
+        z++
+        if(z >= 75)
+        {
+            z = 0;
+        }
+        player.draw(Math.floor(z / 5));
+
+    }
 }
 
 var requestAnimFrame = (function()
@@ -243,3 +350,4 @@ var requestAnimFrame = (function()
         window.setTimeout(callback, 1000 / 20);
     };
 })();
+
