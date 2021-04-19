@@ -8,9 +8,9 @@ class Bullet
     }
     draw()
     {
-        var pimg = new Image();
-        pimg.src = 'img/redb.png';
-        context.drawImage(pimg, this.x, this.y, 13, 13);
+        var bimg = new Image();
+        bimg.src = 'img/redb.png';
+        context.drawImage(bimg, this.x, this.y, 13, 13);
     }
     move()
     {
@@ -42,6 +42,7 @@ class Bullet
             {
                 delete enemys[i];
                 ecount--;
+                ekills++;
                 collided = true;
             }
         });
