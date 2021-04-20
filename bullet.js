@@ -44,6 +44,7 @@ class Bullet
                 ecount--;
                 ekills++;
                 collided = true;
+                curscore += 25;
             }
         });
         enemys = enemys.filter(item => item !== undefined);

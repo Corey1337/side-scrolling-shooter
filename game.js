@@ -7,6 +7,8 @@ function include(url) {
 include("player.js");
 include("enemy.js");
 include("bullet.js");
+include("obstacle.js");
+include("boss.js");
 
 var canvas = document.getElementById('game');
 var context = canvas.getContext('2d');
@@ -15,10 +17,15 @@ document.addEventListener('keyup', keyRealeased);
 canvas.addEventListener("mousemove", checkPos);
 var fadeId = 0;
 
+context.font = "30px Arial";
+
 var pcon = 0; //0-main menu 1-game 2-death-screen
 var pcont = 0; //1-keyboard 2-mouse only
 var Img = [];
 var z = 0;
+var curscore = 0;
+var bestscore = 0;
+
 for (var i = 0; i < 15; i++)
 {
     Img[i] = new Image();
@@ -28,17 +35,30 @@ for (var i = 0; i < 15; i++)
 var enemys = [];
 var ecount = 0;
 var ekills = 0;
+var bosshp = -1;
 
 var bullets = [];
+var obstacles = [];
+var boss;
 
 function makeEnemy()
 {
     ex = 900;
     ey = Math.random()*525;
-    edx = Math.random(-30)*-10;
-    edy = Math.random(10)*30;
+    edx = Math.random(-45)*-20;
+    edy = Math.random(-10)*10;
     var enemy = new Enemy(ex, ey, edx, edy);
     enemys.push(enemy);
+}
+
+function makeBoss()
+{
+    bosshp = 60;
+    bossx = 900;
+    bossy = 450;
+    bossdx = -10;
+    bossdy = -10;
+    boss = new Boss(bossx, bossy, bossdx, bossdy);
 }
 
 function makeBullet()
@@ -50,6 +70,17 @@ function makeBullet()
     var bullet = new Bullet(bx, by, bdx);
 
     bullets.push(bullet);
+}
+
+function makeObst(enx, eny)
+{
+    var ox = enx;
+    var oy = eny + 75/2;
+    var odx = 10;
+    
+    var obstacle = new Obstacle(ox, oy, odx);
+
+    obstacles.push(obstacle);
 }
 var kd = 0;
 
@@ -74,11 +105,15 @@ var controlimg = new Image();
 var keybord = new Image();
 var mouse = new Image();
 var course = new Image();
+var gameover = new Image();
+var menu = new Image();
 
 controlimg.src = "img/control.png";
 keybord.src = "img/keyboard1.png";
 mouse.src = "img/mouse.png";
 course.src = "img/wand.png";
+gameover.src = "img/gameover.png";
+menu.src = "img/mainmenu.png";
 
 
 
@@ -164,19 +199,25 @@ function keyRealeased(evt)
     }
 }
 
-canvas.addEventListener('click', function(event) { 
-    if (mouseX > buttonX[1] && mouseX < buttonX[1] + buttonW[1] && mouseY > buttonY[1] &&  mouseY < buttonY[1] + buttonH[1] )
+canvas.addEventListener('click', function(event)
+ { 
+    if (mouseX > buttonX[1] && mouseX < buttonX[1] + buttonW[1] && mouseY > buttonY[1] &&  mouseY < buttonY[1] + buttonH[1] && pcon == 0)
     {
         pcon = 1;
         pcont = 1;
     } 
-    else if (mouseX > buttonX[2] && mouseX < buttonX[2] + buttonW[2] && mouseY > buttonY[2] &&  mouseY < buttonY[2] + buttonH[2] )
+    else if (mouseX > buttonX[2] && mouseX < buttonX[2] + buttonW[2] && mouseY > buttonY[2] &&  mouseY < buttonY[2] + buttonH[2] && pcon == 0)
     {
         pcon = 1;
         pcont = 2;
         document.getElementById('game').style.cursor = "none";
     }
-  }); 
+    else if (mouseX > 300 && mouseX < 300 + 373 && mouseY > 420 &&  mouseY < 420 + 63 && pcon == 2)
+    {
+        pcon = 0;
+        pcont = 0;
+    }
+  });
 
 function pmove()
 {
@@ -213,14 +254,19 @@ function emove()
         godtimer--;
     }
     timer++;
-    if (timer%20 == 0 && ecount < 25 && ekills <= 50 && godtimer == 0)
+    if (timer%20 == 0 && ecount < 30 && ekills <= 60 && godtimer == 0)
     {
         makeEnemy();
         ecount++;
     }
+    
     //phis
     for(i in enemys)
     {
+        if(timer % 30 == 0)
+        {
+            makeObst(enemys[i].x, enemys[i].y);
+        }
         enemys[i].move();
         //border
         if (enemys[i].x <= 0)
@@ -230,16 +276,22 @@ function emove()
         }
         if (enemys[i].y >= 525 || enemys[i].y < 0) enemys[i].dy = -enemys[i].dy;
         //collusion
-        if(enemys[i].y + 75 > player.y && enemys[i].y < player.y + 75 && enemys[i].x + 75 > player.x && enemys[i].x < player.x + 75)
+        if(enemys[i].y + 75 > player.y + 75/2 && enemys[i].y < player.y + 75 - 75/2 && enemys[i].x + 75 > player.x + 75/2 + 3 && enemys[i].x < player.x + 75 - (75/2 + 3))
         {
             godtimer = 180;
             plph--;
+            curscore -= 50;
             enemys.forEach(function(enemy, i)
             {
                 delete enemys[i];
                 ecount--;
             });
+            obstacles.forEach(function(obstacle, i)
+            {
+                delete obstacles[i];
+            });
             enemys = enemys.filter(item => item !== undefined);
+            obstacles = obstacles.filter(item => item !== undefined);
             if(pcont == 1)
             {
                 player.x = 100;
@@ -249,7 +301,69 @@ function emove()
         }
     }
 
-    fx += 6;//bg move speed
+    fx += 4;//bg move speed
+}
+
+function bossmove()
+{
+    if(timer % 25 == 0 && godtimer == 0)
+    {
+        makeObst(boss.x, boss.y);
+        makeObst(boss.x+50, boss.y+50);
+        makeObst(boss.x-50, boss.y-50);
+        makeObst(boss.x+100, boss.y+100);
+        makeObst(boss.x-100, boss.y-100);
+    }
+    boss.move();
+    if (boss.x <= 500 || boss.x >900) boss.dx = -boss.dx
+    if (boss.y >= 525 || boss.y < 0) boss.dy = -boss.dy;
+    if(boss.y + 200 > player.y + 75/2 && boss.y < player.y + 75 - 75/2 && boss.x + 200 > player.x + 75/2 + 3 && boss.x < player.x + 75 - (75/2 + 3))
+    {
+        godtimer = 180;
+        plph--;
+        curscore -= 50;
+        obstacles.forEach(function(obstacle, i)
+        {
+            delete obstacles[i];
+        });
+        obstacles = obstacles.filter(item => item !== undefined);
+        if(pcont == 1)
+        {
+            player.x = 100;
+            player.y = 300;
+        }
+        console.log('hit');
+    }
+}
+
+function omove()
+{
+    for(i in obstacles)
+    {
+        obstacles[i].move();
+        if(obstacles[i].outOfRange() )
+        {
+            delete obstacles[i]
+            curscore++;
+        }
+        else if(obstacles[i].y + 13 > player.y + 75/2 && obstacles[i].y < player.y + 75 - 75/2 && obstacles[i].x + 20 > player.x + 75/2 + 3 && obstacles[i].x < player.x + 75 - (75/2 + 3))
+        {
+            godtimer = 180;
+            plph--;
+            curscore -= 50;
+            obstacles.forEach(function(obstacle, i)
+            {
+                delete obstacles[i];
+            });
+            enemys.forEach(function(enemy, i)
+            {
+                delete enemys[i];
+            });
+        }
+        
+    }
+    enemys = enemys.filter(item => item !== undefined);
+    obstacles = obstacles.filter(item => item !== undefined);
 }
 
 function bmove()
@@ -261,9 +375,19 @@ function bmove()
     for(i in bullets) 
     {
         bullets[i].move();
-        if(bullets[i].outOfRange() || bullets[i].hasCollided())
+        if(bullets[i].outOfRange())
         {
             delete bullets[i];
+        }
+        else if (bullets[i].hasCollided())
+        {
+            delete bullets[i];
+        }
+        else if(bosshp > -1 && bullets[i].x + 13 >= boss.x && bullets[i].x <= boss.x + 200 && bullets[i].y + 13 >= boss.y && bullets[i].y <= boss.y + 75)
+        {
+            delete bullets[i];
+            curscore += 10;
+            bosshp--;
         }
     }
     bullets = bullets.filter(item => item !== undefined);
@@ -295,7 +419,7 @@ function update()
     
     if(pcon == 0)
     {
-        
+        curscore = 0;
     }
     if(pcon == 1)
     {
@@ -303,9 +427,39 @@ function update()
         {
             shoot();
         }
+        
+        if(ekills > 60 && bosshp == -1)
+        {
+            makeBoss();
+            enemys.forEach(function(enemy, i)
+            {
+                delete enemys[i];
+            });
+            enemys = enemys.filter(item => item !== undefined);
+        }
+        if(bosshp > -1)
+        { 
+            bossmove();
+        }
         pmove();
         emove();
         bmove();
+        omove();
+    }
+    if(plph == 0 || bosshp == 0)
+    {
+        pcon = 2;
+        document.getElementById('game').style.cursor = "default";
+    }
+    if(pcon == 2)
+    {
+        if (curscore > bestscore)
+        {
+            bestscore = curscore;
+        }
+        plph = 3;
+        ekills = 0;
+        bosshp = -1;
     }
 }
 
@@ -322,11 +476,13 @@ function render()
         context.drawImage(controlimg, buttonX[0], buttonY[0]);
         context.drawImage(keybord, buttonX[1], buttonY[1]);
         context.drawImage(mouse, buttonX[2], buttonY[2]);
+        context.fillText("Best score :" + bestscore, 50, 50);
     }
     if(pcon == 1)
     {
         for(i in enemys) enemys[i].draw();
         for(i in bullets) bullets[i].draw();
+        for(i in obstacles) obstacles[i].draw();
         
         z++
         if(z >= 75)
@@ -334,8 +490,20 @@ function render()
             z = 0;
         }
         player.draw(Math.floor(z / 5));
-
+        context.fillText("score :" + curscore, 50, 50);
+        if(bosshp > -1)
+        {
+            boss.draw();
+        }
     }
+    if(pcon == 2)
+    {
+        context.drawImage(gameover, 300, 200);
+        context.fillText("Your score :" + curscore, 300, 350);
+        context.fillText("Best score :" + bestscore, 300, 400);
+        context.drawImage(menu, 300, 420);
+    }
+    
 }
 
 var requestAnimFrame = (function()
